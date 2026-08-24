@@ -4,7 +4,7 @@ import { QrCode, Smartphone, X, ExternalLink, Sparkles, CheckCircle2 } from 'luc
 
 export default function LiveAppQrModal({ liveUrl }) {
   const [isOpen, setIsOpen] = useState(false);
-  const targetUrl = liveUrl || (typeof window !== 'undefined' ? window.location.href : 'https://civictrace-ai.vercel.app');
+  const targetUrl = liveUrl || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? window.location.href : 'https://mirzadev12.github.io/civictrace-ai/');
 
   return (
     <>
@@ -28,12 +28,12 @@ export default function LiveAppQrModal({ liveUrl }) {
 
       {/* Modal Popup */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-150">
           <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
             
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -43,10 +43,10 @@ export default function LiveAppQrModal({ liveUrl }) {
             </div>
 
             <h3 className="text-base font-bold text-white mb-1">
-              Test Live on Your Phone
+              Scan to Open on Your Phone
             </h3>
-            <p className="text-xs text-slate-400 mb-5">
-              Point your phone camera at the QR code below to test genuine mobile camera capture and GPS auto-detection!
+            <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+              Open your phone camera and scan the QR code to test genuine mobile camera capture and GPS auto-detection!
             </p>
 
             {/* QR Code Container */}
@@ -65,7 +65,7 @@ export default function LiveAppQrModal({ liveUrl }) {
 
             <div className="flex items-center justify-center gap-1.5 text-xs text-slate-300">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Native Camera &amp; Location Enabled</span>
+              <span>Native Mobile Camera &amp; Location Enabled</span>
             </div>
 
           </div>
