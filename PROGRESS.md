@@ -1,7 +1,7 @@
 # CivicTrace AI - Development Progress
 
 ## 🚀 Project Status
-Header, Navigation, Live Ticker, and Toast HUD Deployed & Synced.
+Interactive Geospatial Map Engine Completed, Tested & Synced.
 
 ---
 
@@ -12,12 +12,12 @@ Header, Navigation, Live Ticker, and Toast HUD Deployed & Synced.
 - [x] **Version Control Setup**: Git initialized, `.gitignore` tailored, initial commit & GitHub synchronization
 - [x] **Core State & Mock Data Engine**: `CivicContext.jsx`, `mockComplaints.js`, `wardsData.js`, `demoScenarios.js`, `geoUtils.js`, `formatters.js`
 - [x] **Municipal Header & Live Ticker** (`Header.jsx`, `MunicipalTicker.jsx`, `StatBadge.jsx`, `ToastContainer.jsx`, `BottomNav.jsx`)
+- [x] **Interactive Municipal Map** (`InteractiveMap.jsx` with Leaflet dark matter tiles, dynamic pulse markers, ward boundary polygons, and popups)
 
 ### 🔄 In Progress
-- [ ] **Interactive Municipal Map** (`InteractiveMap.jsx` with Leaflet markers, wards, SLA heat indicators)
+- [ ] **AI Deduplication Modal** (`DeduplicationModal.jsx` with cosine similarity visualizer & cluster merge)
 
 ### ⏳ Not Yet Started (Planned)
-- [ ] **AI Deduplication Modal** (`DeduplicationModal.jsx` with cosine similarity visualizer & cluster merge)
 - [ ] **SLA Dynamic Risk Calculator Card** (`SlaCalculatorCard.jsx` with priority scoring & escalation countdown)
 - [ ] **Routing & Crew Dispatch Match Card** (`RoutingMatchCard.jsx` with department confidence meters)
 - [ ] **Real-time Triage Table / Queue** (`TriageTable.jsx` & `ComplaintCard.jsx`)
