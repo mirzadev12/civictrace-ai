@@ -1,19 +1,17 @@
 # CivicTrace AI - Engineering Handoff Document
 
-Welcome to **CivicTrace AI** (Municipal Incident Triage, Integrity & Auto-Dispatch Engine). This document serves as a complete technical guide for developers and AI agents continuing to expand or maintain this codebase.
+Welcome to **CivicTrace AI** (Ultra-Clean Dual-Interface Web App). This document provides complete architectural specifications, state interfaces, component breakdowns, and reproduction steps for any developer or AI assistant continuing development.
 
 ---
 
 ## 🏛️ System Architecture Overview
 
-CivicTrace AI is a client-side municipal triage operations platform. It continuously processes civic complaints, flags image/geotag tampering using EXIF forensic comparisons, clusters duplicates using embedding cosine similarity, dynamically calculates SLA windows based on casualty/arterial risk multipliers, and automatically suggests optimal department and crew dispatch.
+CivicTrace AI is a client-side municipal platform designed with a dual interface:
+1. **Civilian View**: Instagram-simple neighborhood issue feed, before/after repair sliders, glowing activity heatmap, and 1-tap native mobile camera reporting with intelligent duplicate assistance.
+2. **Officer View**: Logistics operations dashboard with community-upvoted priority queues, automated routing speed tags ("Routed in 0.2s"), repair photo verification with automated checklists, and dynamic crew workload capacity visualizers.
 
-### Tech Stack
-- **Framework**: Vite 6 + React 19
-- **Styling**: Tailwind CSS v4 with custom dark mode glassmorphism UI
-- **Icons**: Lucide React
-- **Geospatial Mapping**: Leaflet 1.9 + React-Leaflet 5 with CartoDB Dark Matter tile layer
-- **State Management**: React Context API (`CivicContext.jsx`)
+### Key Technical Rule
+**ZERO JARGON IN UI**: All technical terminology (`Spatial Deduplication`, `GeoJSON`, `EXIF`, `DPI Engine`, `Cryptographic`, `Vector Boundary`, `JSON payload`, `Ward Geo-Mesh`) is completely forbidden from user-facing screens and replaced with friendly human language ("Photo integrity verified", "Neighbors already reported this", "Roads Team", "Community Upvotes").
 
 ---
 
@@ -22,97 +20,78 @@ CivicTrace AI is a client-side municipal triage operations platform. It continuo
 ```
 civictrace-ai/
 ├── PROGRESS.md                          # Live progress and completed features checklist
-├── HANDOFF.md                           # This architecture brief and technical guide
-├── package.json                         # Dependencies & scripts
-├── vite.config.js                       # Vite with @tailwindcss/vite and @vitejs/plugin-react
+├── HANDOFF.md                           # This architecture and technical guide
+├── package.json                         # Dependencies
+├── vite.config.js                       # Vite with Tailwind v4 & React
 ├── index.html                           # Root HTML with Google Fonts
 └── src/
     ├── main.jsx                         # React entrypoint
-    ├── App.jsx                          # Main Dashboard Controller & modal host
-    ├── index.css                        # Tailwind v4 import & Leaflet popup styles
+    ├── App.jsx                          # Dual-view host & layout controller
+    ├── index.css                        # Tailwind v4 directives & Leaflet styles
     ├── context/
-    │   └── CivicContext.jsx             # Central state store, actions, and audit log
+    │   └── CivicContext.jsx             # Dual-view state store, upvotes & actions
     ├── data/
-    │   ├── mockComplaints.js            # Realistic municipal incident dataset
-    │   ├── wardsData.js                 # Ward coordinates, zones, populations & depts
-    │   └── demoScenarios.js             # 4 1-click incident demo presets
+    │   └── mockIssues.js                # Human-language issues, workload & heatmap data
     ├── utils/
-    │   ├── geoUtils.js                  # Haversine distance calculator
-    │   └── formatters.js                # Timeago, SLA countdown, and badge classes
+    │   └── soundEffects.js              # Pure Web Audio synthetic chimes for upvotes & submissions
     └── components/
         ├── layout/
-        │   ├── Header.jsx               # Top navigation with ward switcher & tabs
-        │   ├── MunicipalTicker.jsx      # Telemetry ticker with live alerts
-        │   └── BottomNav.jsx            # Mobile view navigation bar
-        ├── map/
-        │   └── InteractiveMap.jsx       # Leaflet map with pulse pins & ward boundaries
-        ├── triage/
-        │   ├── TriageTable.jsx          # Tabular triage queue with quick actions
-        │   ├── ComplaintCard.jsx        # Mobile responsive card layout
-        │   ├── FilterToolbar.jsx        # Search, ward, category & status filters
-        │   └── NewComplaintModal.jsx    # Simulated citizen incident submission
-        ├── ai/
-        │   ├── DeduplicationModal.jsx   # Vector cosine similarity & 1-click merge
-        │   ├── SlaCalculatorCard.jsx    # Dynamic SLA breakdown & escalation trigger
-        │   ├── RoutingMatchCard.jsx     # AI department classifier & crew dispatch
-        │   └── ExifVerifier.jsx         # Geotag forensics & fraud quarantine
-        ├── analytics/
-        │   └── AnalyticsView.jsx        # Ward leaderboard & real-time audit stream
-        ├── scenarios/
-        │   └── DemoScenariosBar.jsx     # 1-click scenario simulation launcher
+        │   └── AppNavbar.jsx            # Top bar with instant Civilian / Officer view switcher
+        ├── civilian/
+        │   ├── CivilianFeed.jsx         # Nearby issue cards & monthly fix counter
+        │   ├── IssueDetailModal.jsx     # Detail modal with Before/After slider & progress steps
+        │   ├── CivilianHeatmap.jsx      # Glowing community activity zones
+        │   ├── MyReportsView.jsx        # Personal report tracking dashboard
+        │   ├── ReportFlowModal.jsx      # 5-step camera report modal (native camera + dedup check)
+        │   └── CivilianBottomNav.jsx    # Bottom navigation with giant floating "+" button
+        ├── officer/
+        │   ├── OfficerDashboard.jsx     # Ops cockpit container & tab switcher
+        │   ├── OfficerPriorityQueue.jsx # Community upvote-ranked queue with fix countdowns
+        │   ├── OfficerLiveMap.jsx       # Geospatial pin radar with auto-assigned team tags
+        │   ├── OfficerFixVerifyModal.jsx# Side-by-side photo check & ticket close action
+        │   └── OfficerWorkloadView.jsx  # Field crew capacity meters
         └── common/
-            ├── StatBadge.jsx            # KPI metric cards with pulse states
-            └── ToastContainer.jsx       # HUD notification alerts
+            ├── BeforeAfterSlider.jsx    # Interactive draggable image comparison slider
+            ├── LiveAppQrModal.jsx       # Floating QR code modal for live phone testing
+            ├── StatBadge.jsx            # Metric badges
+            └── ToastContainer.jsx       # HUD notification popups
 ```
 
 ---
 
-## 🔄 State Management & APIs (`CivicContext.jsx`)
+## 🔄 State Store & APIs (`CivicContext.jsx`)
 
-The application state is accessible via the `useCivic()` hook:
+Access state and actions via `useCivic()`:
 
 ### Key State Properties
-- `complaints`: Array of all active complaints.
-- `filteredComplaints`: Subset of complaints matching current search query, ward, category, and status.
-- `selectedComplaint`: The currently focused incident.
-- `activeModal`: Open modal type (`'dedup' | 'sla' | 'routing' | 'exif' | 'new_complaint' | null`).
-- `activeScenarioId`: Currently activated simulation scenario.
-- `metrics`: Aggregate computed values (`total`, `critical`, `duplicatesClustered`, `fraudQuarantined`, `resolved`, `avgSlaCompliance`).
-- `auditLogs`: Append-only chronological list of triage actions taken.
+- `currentView`: `'civilian' | 'officer'` (toggled via `toggleView()`)
+- `civilianTab`: `'feed' | 'map' | 'my_reports'`
+- `officerTab`: `'queue' | 'map' | 'workload'`
+- `issues`: Array of issue objects (photos, status, upvotes, assigned team, fix estimate, before/after photos).
+- `selectedIssue`: Focused issue for detail modals.
+- `fixedCountThisMonth`: Live counter of resolved fixes in the neighborhood.
+- `workloadStats`: Field crew capacity and active task breakdown.
+- `heatmapHotspots`: Glowing community activity zones.
 
-### Primary Actions
-- `openModal(modalType, complaintId)`: Opens the target AI or inspector modal.
-- `mergeDuplicates(parentComplaintId)`: Collapses clustered duplicate tickets into the parent ticket, prevents double dispatching, and broadcasts citizen tracking links.
-- `escalateComplaint(complaintId)`: Escalates ticket to `CRITICAL` priority, shrinks SLA window, and logs supervisor alert.
-- `resolveComplaint(complaintId)`: Marks complaint as `RESOLVED`, updates SLA status, and closes ticket.
-- `reassignDepartment(complaintId, deptId, deptName, crewName)`: Updates ticket routing and crew dispatch.
-- `flagFraud(complaintId, reason)`: Quarantines tampered/spoofed submissions to prevent wasted municipal patrol budget.
-- `loadScenario(scenarioId)`: Sets up filters and automatically opens the relevant AI modal for live presentation.
-- `addNewComplaint(complaintData)`: Ingests a new citizen report and adds it to the live queue.
+### Key Actions
+- `upvoteIssue(issueId)`: Increments upvote count, plays synthetic chime sound, updates community priority rank.
+- `createReport(reportData)`: Adds a new issue, triggers confetti, auto-routes to responsible team in 0.2s.
+- `supportExistingIssue(issueId)`: Links user to existing nearby report, avoids duplicate physical dispatches.
+- `verifyAndCloseTicket(issueId, afterPhoto)`: Marks issue as `Fixed`, activates the Before/After comparison slider for citizens.
 
 ---
 
-## 🎮 Interactive Demo Scenarios
-
-The cockpit includes 4 preset test scenarios on the top bar:
-1. **Water Main Rupture Crisis**: Ward 103 • 200 PSI Main Line Breach (triggers 10m critical SLA countdown & rapid valve unit dispatch).
-2. **Pothole Duplicate Storm**: Ward 101 • 3 citizen reports within 25m (triggers embedding similarity clustering and batch merge).
-3. **Geotag Tampering Spoof**: Ward 104 • 1,140km coordinate mismatch (triggers EXIF tamper forensics and fraud quarantine).
-4. **Multi-Dept AI Routing**: Ward 102 • Biomedical Dump Triage (triggers AI classifier and hazardous tipper crew assignment).
-
----
-
-## ⚡ Local Setup & Execution
+## ⚡ Quick Start & Deployment
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 npm install
 
-# 2. Run local development server
+# Local development server
 npm run dev
 
-# 3. Build for production deployment
+# Production build
 npm run build
 ```
 
-Repository URL: **https://github.com/mirzadev12/civictrace-ai**
+Repository: **https://github.com/mirzadev12/civictrace-ai**

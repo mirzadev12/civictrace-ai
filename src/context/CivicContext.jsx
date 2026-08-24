@@ -1,376 +1,192 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { INITIAL_COMPLAINTS } from '../data/mockComplaints';
-import { WARDS_DATA, DEPARTMENTS } from '../data/wardsData';
-import { DEMO_SCENARIOS } from '../data/demoScenarios';
+import React, { createContext, useContext, useState, useMemo } from 'react';
+import { INITIAL_ISSUES, WORKLOAD_STATS, HEATMAP_HOTSPOTS } from '../data/mockIssues';
+import { soundFX } from '../utils/soundEffects';
+import confetti from 'canvas-confetti';
 
 const CivicContext = createContext();
 
 export function CivicProvider({ children }) {
-  const [complaints, setComplaints] = useState(INITIAL_COMPLAINTS);
-  const [selectedWard, setSelectedWard] = useState('ALL');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedComplaintId, setSelectedComplaintId] = useState(INITIAL_COMPLAINTS[0].id);
-  const [activeModal, setActiveModal] = useState(null); // 'dedup' | 'sla' | 'routing' | 'exif' | 'detail' | 'new_complaint'
-  const [activeScenarioId, setActiveScenarioId] = useState(null);
-  const [auditLogs, setAuditLogs] = useState([
-    {
-      id: "LOG-1",
-      timestamp: new Date(Date.now() - 45 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      action: "AI Auto-Triage Completed",
-      details: "CIVIC-2026-881 routed to PWD (96% confidence). 2 duplicate reports clustered.",
-      badge: "ROUTED"
-    },
-    {
-      id: "LOG-2",
-      timestamp: new Date(Date.now() - 110 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      action: "SLA Warning Broadcasted",
-      details: "CIVIC-2026-742 entered Critical Breach Zone (<15m remaining). Escalation dispatched.",
-      badge: "ESCALATION"
-    },
-    {
-      id: "LOG-3",
-      timestamp: new Date(Date.now() - 15 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      action: "EXIF Tamper Quarantine",
-      details: "CIVIC-2026-904 flagged for 1,140km coordinate spoof. Citizen reputation score docked.",
-      badge: "FRAUD"
-    }
-  ]);
+  // Global Dual-View Toggle: 'civilian' | 'officer'
+  const [currentView, setCurrentView] = useState('civilian');
+  
+  // Navigation Tabs for each view
+  const [civilianTab, setCivilianTab] = useState('feed'); // 'feed' | 'map' | 'my_reports'
+  const [officerTab, setOfficerTab] = useState('queue'); // 'queue' | 'map' | 'workload'
 
+  // Issues Store
+  const [issues, setIssues] = useState(INITIAL_ISSUES);
+  const [selectedIssueId, setSelectedIssueId] = useState(INITIAL_ISSUES[0].id);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+  const [userReportIds, setUserReportIds] = useState(['ISSUE-101']);
+  const [fixedCountThisMonth, setFixedCountThisMonth] = useState(142);
+  const [activeFilterCategory, setActiveFilterCategory] = useState('ALL');
+
+  // Selected Issue
+  const selectedIssue = useMemo(() => {
+    return issues.find(i => i.id === selectedIssueId) || issues[0];
+  }, [issues, selectedIssueId]);
+
+  // Toast Notifications
   const [toasts, setToasts] = useState([]);
-
-  const addToast = (title, message, type = 'info') => {
+  const addToast = (title, message, type = 'success') => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, title, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
+  const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+  // Toggle Dual View
+  const toggleView = () => {
+    setCurrentView(prev => prev === 'civilian' ? 'officer' : 'civilian');
   };
 
-  // Selected complaint object
-  const selectedComplaint = useMemo(() => {
-    return complaints.find(c => c.id === selectedComplaintId) || complaints[0];
-  }, [complaints, selectedComplaintId]);
+  // Upvote Action (with micro-interaction chime)
+  const upvoteIssue = (issueId) => {
+    soundFX.playUpvote();
 
-  // Filtered complaints
-  const filteredComplaints = useMemo(() => {
-    return complaints.filter(item => {
-      const matchWard = selectedWard === 'ALL' || item.wardId === selectedWard;
-      const matchCategory = selectedCategory === 'ALL' || item.category === selectedCategory;
-      const matchStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
-      const matchSearch = searchQuery === '' || 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.address.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchWard && matchCategory && matchStatus && matchSearch;
-    });
-  }, [complaints, selectedWard, selectedCategory, selectedStatus, searchQuery]);
-
-  // Aggregate Metrics
-  const metrics = useMemo(() => {
-    const total = complaints.length;
-    const critical = complaints.filter(c => c.priority === 'CRITICAL' && c.status !== 'RESOLVED').length;
-    const duplicatesClustered = complaints.reduce((acc, curr) => acc + (curr.similarityCluster?.length || 0), 0);
-    const resolved = complaints.filter(c => c.status === 'RESOLVED' || c.status === 'RESOLVED_WITHIN_SLA').length;
-    const fraudQuarantined = complaints.filter(c => c.status === 'FLAGGED_FRAUD').length;
-    const avgSlaCompliance = 93.4;
-
-    return {
-      total,
-      critical,
-      duplicatesClustered,
-      resolved,
-      fraudQuarantined,
-      avgSlaCompliance
-    };
-  }, [complaints]);
-
-  // Actions
-  const openModal = (modalType, complaintId = null) => {
-    if (complaintId) {
-      setSelectedComplaintId(complaintId);
-    }
-    setActiveModal(modalType);
-  };
-
-  const closeModal = () => {
-    setActiveModal(null);
-  };
-
-  const mergeDuplicates = (parentComplaintId) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === parentComplaintId) {
-        const mergedCount = (c.similarityCluster?.length || 0);
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        const nextHasUpvoted = !issue.hasUpvoted;
         return {
-          ...c,
-          similarityCluster: [],
-          status: c.status === 'FLAGGED_FRAUD' ? c.status : 'IN_PROGRESS',
-          description: `${c.description} [Merged ${mergedCount} duplicate citizen reports]`
+          ...issue,
+          hasUpvoted: nextHasUpvoted,
+          upvotes: nextHasUpvoted ? issue.upvotes + 1 : Math.max(0, issue.upvotes - 1)
         };
       }
-      return c;
+      return issue;
     }));
 
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "Batch Clustered Reports Merged",
-        details: `Successfully consolidated duplicate citizen reports into parent ticket ${parentComplaintId}. Single crew dispatched.`,
-        badge: "MERGED"
-      },
-      ...prev
-    ]);
-
-    addToast("Duplicates Consolidated", `Merged reports into single ticket ${parentComplaintId}. Redundant dispatch prevented!`, "success");
-    closeModal();
+    addToast("Voice Added!", "Your neighborhood support was counted to accelerate team response.", "success");
   };
 
-  const escalateComplaint = (complaintId) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          priority: "CRITICAL",
-          status: "ESCALATED",
-          riskScore: Math.min(100, (c.riskScore || 80) + 15),
-          slaMinutesRemaining: Math.min(c.slaMinutesRemaining, 15)
-        };
-      }
-      return c;
-    }));
+  // Submit New Citizen Report
+  const createReport = (reportData) => {
+    soundFX.playSuccess();
+    try {
+      confetti({
+        particleCount: 60,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+    } catch (e) {}
 
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "Executive SLA Escalation",
-        details: `Ticket ${complaintId} escalated to Municipal Commissioner & Field Chief. Response window restricted.`,
-        badge: "ESCALATION"
-      },
-      ...prev
-    ]);
-
-    addToast("Emergency Escalation Fired", `Complaint ${complaintId} elevated to Critical priority with priority radio dispatch.`, "warning");
-  };
-
-  const resolveComplaint = (complaintId) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          status: "RESOLVED",
-          crewStatus: "JOB_COMPLETED",
-          slaStatus: "RESOLVED_WITHIN_SLA"
-        };
-      }
-      return c;
-    }));
-
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "Ticket Marked Resolved",
-        details: `Field crew completed remediation for ${complaintId}. Citizen notification dispatched.`,
-        badge: "RESOLVED"
-      },
-      ...prev
-    ]);
-
-    addToast("Complaint Resolved", `Remediation verified and closed for ${complaintId}.`, "success");
-    if (activeModal === 'detail') closeModal();
-  };
-
-  const reassignDepartment = (complaintId, departmentId, departmentName, assignedCrew) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          department: departmentId,
-          departmentName: departmentName,
-          assignedCrew: assignedCrew || c.assignedCrew,
-          crewStatus: "DISPATCHED"
-        };
-      }
-      return c;
-    }));
-
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "Department Routing Re-assigned",
-        details: `Re-routed ${complaintId} to ${departmentName}. Crew: ${assignedCrew}`,
-        badge: "ROUTED"
-      },
-      ...prev
-    ]);
-
-    addToast("Routing Confirmed", `Assigned ${complaintId} to ${departmentName} (${assignedCrew})`, "info");
-    closeModal();
-  };
-
-  const flagFraud = (complaintId, reason) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          status: "FLAGGED_FRAUD",
-          priority: "LOW",
-          slaStatus: "PAUSED_INVESTIGATION"
-        };
-      }
-      return c;
-    }));
-
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "Tamper / Fraud Quarantined",
-        details: `${complaintId} flagged: ${reason || 'Geotag or Image Tampering Detected'}. Dispatch canceled.`,
-        badge: "FRAUD"
-      },
-      ...prev
-    ]);
-
-    addToast("Quarantined for Fraud", `Ticket ${complaintId} flagged for integrity violation. Municipal crew dispatch halted.`, "error");
-    closeModal();
-  };
-
-  const loadScenario = (scenarioId) => {
-    const scenario = DEMO_SCENARIOS.find(s => s.id === scenarioId);
-    if (!scenario) return;
-
-    setActiveScenarioId(scenarioId);
-    setSelectedComplaintId(scenario.complaintId);
-    
-    // Find complaint and adjust filters so it is visible
-    const targetComp = complaints.find(c => c.id === scenario.complaintId);
-    if (targetComp) {
-      setSelectedWard(targetComp.wardId);
-      setSelectedCategory('ALL');
-      setSelectedStatus('ALL');
-    }
-
-    // Open target modal
-    if (scenario.targetModal) {
-      setActiveModal(scenario.targetModal);
-    }
-
-    addToast(`Demo Scenario Activated`, `${scenario.title} loaded into live cockpit.`, "info");
-  };
-
-  const addNewComplaint = (newComplaintData) => {
-    const newId = `CIVIC-2026-${Math.floor(100 + Math.random() * 900)}`;
-    const fullComplaint = {
+    const newId = `ISSUE-${Math.floor(200 + Math.random() * 800)}`;
+    const newEntry = {
       id: newId,
-      title: newComplaintData.title || "Citizen Incident Report",
-      description: newComplaintData.description || "Reported via mobile app citizen portal.",
-      category: newComplaintData.category || "Roads & Infrastructure",
-      wardId: newComplaintData.wardId || "WARD-101",
-      wardName: WARDS_DATA.find(w => w.id === newComplaintData.wardId)?.name || "Ward 101 - Downtown Civic Center",
-      location: newComplaintData.location || [28.6145, 77.2085],
-      address: newComplaintData.address || "Downtown Municipal Sector",
-      citizenName: newComplaintData.citizenName || "Concerned Resident",
-      citizenPhone: newComplaintData.citizenPhone || "+91 98000 00000",
-      citizenCredibilityScore: 95,
-      imageUrl: newComplaintData.imageUrl || "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80",
-      createdAt: new Date().toISOString(),
-      status: "TRIAGED",
-      priority: newComplaintData.priority || "HIGH",
-      riskScore: 75,
-      slaTotalMinutes: 240,
-      slaMinutesRemaining: 240,
-      slaStatus: "ON_TRACK",
-      department: newComplaintData.department || "pwd",
-      departmentName: DEPARTMENTS.find(d => d.id === newComplaintData.department)?.name || "Public Works Dept (Roads & Infra)",
-      assignedCrew: "Field Rapid Dispatch #1",
-      crewStatus: "DISPATCHED",
-      exif: {
-        isAuthentic: true,
-        tamperScore: 5,
-        deviceModel: "Android Mobile Client",
-        software: "CivicTrace Mobile v2.4",
-        originalTimestamp: new Date().toISOString(),
-        gpsLat: newComplaintData.location ? newComplaintData.location[0] : 28.6145,
-        gpsLng: newComplaintData.location ? newComplaintData.location[1] : 77.2085,
-        gpsDiscrepancyMeters: 8,
-        iso: 100,
-        focalLength: "26mm f/1.8",
-        flash: "Auto",
-        aiNotes: "Verified authentic citizen submission with valid camera sensor hash."
-      },
-      similarityCluster: [],
-      routingPrediction: {
-        primaryDept: newComplaintData.department || "pwd",
-        confidence: 0.94,
-        secondaryDept: "sanitation",
-        rationale: "AI classifier assigned based on image vision embeddings and natural language description."
+      title: reportData.title || `${reportData.category || 'Road'} issue reported near you`,
+      category: reportData.category || 'Pothole',
+      categoryIcon: reportData.categoryIcon || '🕳️',
+      photo: reportData.photo || "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80",
+      afterPhoto: "https://images.unsplash.com/photo-1584463699039-446714078832?auto=format&fit=crop&w=800&q=80",
+      address: reportData.address || "Main Street, Ward 12",
+      area: "Connaught Ward",
+      distance: "Near you",
+      location: reportData.location || [28.6145, 77.2085],
+      status: "Assigned",
+      upvotes: 1,
+      hasUpvoted: true,
+      reportedTimeAgo: "Just now",
+      assignedTeam: reportData.assignedTeam || "Roads Team (Division II)",
+      fixEstimate: "Expected fix: within 24 hours",
+      deadlineMinutesRemaining: 1440,
+      routedSpeed: "Routed to Field Team in 0.2s",
+      reportedBy: "You (Verified Resident)",
+      verificationChecklist: {
+        locationVerified: true,
+        timeVerified: true,
+        qualityApproved: false
       }
     };
 
-    setComplaints(prev => [fullComplaint, ...prev]);
-    setSelectedComplaintId(newId);
+    setIssues(prev => [newEntry, ...prev]);
+    setUserReportIds(prev => [newId, ...prev]);
+    setSelectedIssueId(newId);
+    setIsReportOpen(false);
 
-    setAuditLogs(prev => [
-      {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: "New Citizen Report Ingested",
-        details: `Ticket ${newId} ingested via citizen portal. AI auto-assigned to ${fullComplaint.departmentName}.`,
-        badge: "INGESTED"
-      },
-      ...prev
-    ]);
+    addToast("Report Filed Successfully 🎉", "Auto-routed to the field team in 0.2s.", "success");
+  };
 
-    addToast("Complaint Filed", `Incident ${newId} logged and dispatched!`, "success");
-    closeModal();
+  // Support Existing Nearby Issue instead of duplicate
+  const supportExistingIssue = (existingIssueId) => {
+    upvoteIssue(existingIssueId);
+    setUserReportIds(prev => prev.includes(existingIssueId) ? prev : [existingIssueId, ...prev]);
+    setIsReportOpen(false);
+    setSelectedIssueId(existingIssueId);
+    setIsDetailOpen(true);
+    addToast("Added to Existing Report!", "You're now tracking this community fix with your neighbors.", "success");
+  };
+
+  // Officer Approves Fix & Closes Ticket
+  const verifyAndCloseTicket = (issueId, uploadedAfterPhoto) => {
+    soundFX.playSuccess();
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch (e) {}
+
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        return {
+          ...issue,
+          status: "Fixed",
+          fixEstimate: "Completed & Verified 🎉",
+          fixedTimeAgo: "Just now",
+          afterPhoto: uploadedAfterPhoto || issue.afterPhoto || "https://images.unsplash.com/photo-1584463699039-446714078832?auto=format&fit=crop&w=800&q=80",
+          verificationChecklist: {
+            locationVerified: true,
+            timeVerified: true,
+            qualityApproved: true
+          }
+        };
+      }
+      return issue;
+    }));
+
+    setFixedCountThisMonth(prev => prev + 1);
+    setIsVerifyOpen(false);
+    addToast("Fix Approved & Ticket Closed!", "Before/After comparison slider is now active for neighbors.", "success");
   };
 
   return (
     <CivicContext.Provider
       value={{
-        complaints,
-        filteredComplaints,
-        wards: WARDS_DATA,
-        departments: DEPARTMENTS,
-        scenarios: DEMO_SCENARIOS,
-        selectedWard,
-        setSelectedWard,
-        selectedCategory,
-        setSelectedCategory,
-        selectedStatus,
-        setSelectedStatus,
-        searchQuery,
-        setSearchQuery,
-        selectedComplaintId,
-        setSelectedComplaintId,
-        selectedComplaint,
-        activeModal,
-        openModal,
-        closeModal,
-        activeScenarioId,
-        loadScenario,
-        metrics,
-        auditLogs,
+        currentView,
+        setCurrentView,
+        toggleView,
+        civilianTab,
+        setCivilianTab,
+        officerTab,
+        setOfficerTab,
+        issues,
+        selectedIssue,
+        selectedIssueId,
+        setSelectedIssueId,
+        isDetailOpen,
+        setIsDetailOpen,
+        isReportOpen,
+        setIsReportOpen,
+        isVerifyOpen,
+        setIsVerifyOpen,
+        userReportIds,
+        fixedCountThisMonth,
+        workloadStats: WORKLOAD_STATS,
+        heatmapHotspots: HEATMAP_HOTSPOTS,
+        activeFilterCategory,
+        setActiveFilterCategory,
+        upvoteIssue,
+        createReport,
+        supportExistingIssue,
+        verifyAndCloseTicket,
         toasts,
         addToast,
-        removeToast,
-        mergeDuplicates,
-        escalateComplaint,
-        resolveComplaint,
-        reassignDepartment,
-        flagFraud,
-        addNewComplaint
+        removeToast
       }}
     >
       {children}
@@ -379,9 +195,7 @@ export function CivicProvider({ children }) {
 }
 
 export function useCivic() {
-  const context = useContext(CivicContext);
-  if (!context) {
-    throw new Error("useCivic must be used within a CivicProvider");
-  }
-  return context;
+  const ctx = useContext(CivicContext);
+  if (!ctx) throw new Error("useCivic must be used within CivicProvider");
+  return ctx;
 }

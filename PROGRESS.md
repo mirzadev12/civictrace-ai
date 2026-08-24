@@ -1,27 +1,53 @@
 # CivicTrace AI - Development Progress
 
-## 🚀 Project Status
-All Core Features, AI Engines, Interactive Geospatial Maps, Demo Scenarios, and SLA Triaging Modules are **Fully Built, Verified, and Synced with GitHub**.
+## 🚀 Rebuild Status: Ultra-Clean Dual-Interface Web App Completed & Verified
+
+The application has been completely redesigned and rebuilt into an ultra-clean, dual-interface municipal platform with **100% human plain language** and **zero technical jargon**.
 
 ---
 
-## 📋 Features & Component Progress
+## 📋 Dual-Interface Architecture & Verified Components
 
-### ✅ Completed & Verified
-- [x] **Project Scaffolding**: Vite + React 19 + Tailwind CSS + Leaflet + Lucide setup
-- [x] **Version Control Setup**: Git initialized, `.gitignore` tailored, initial commit & GitHub synchronization (`mirzadev12/civictrace-ai`)
-- [x] **Core State & Mock Data Engine**: `CivicContext.jsx`, `mockComplaints.js`, `wardsData.js`, `demoScenarios.js`, `geoUtils.js`, `formatters.js`
-- [x] **Municipal Header & Live Ticker** (`Header.jsx`, `MunicipalTicker.jsx`, `StatBadge.jsx`, `ToastContainer.jsx`, `BottomNav.jsx`)
-- [x] **Interactive Municipal Map** (`InteractiveMap.jsx` with Leaflet dark matter tiles, dynamic pulse markers, ward boundary polygons, and popups)
-- [x] **AI Deduplication Modal** (`DeduplicationModal.jsx` with cosine similarity visualizer & 1-click batch merge)
-- [x] **SLA Dynamic Risk Calculator Card** (`SlaCalculatorCard.jsx` with real-time urgency multipliers, countdown gauges, and executive escalation)
-- [x] **Routing & Crew Dispatch Match Card** (`RoutingMatchCard.jsx` with department confidence meters, crew assigner, and AI rationale)
-- [x] **Real-time Triage Table / Queue** (`TriageTable.jsx`, `ComplaintCard.jsx`, `FilterToolbar.jsx` with responsive layouts and search)
-- [x] **EXIF & Image Tamper Verifier** (`ExifVerifier.jsx` with GPS discrepancy calculation, camera sensor forensics, and quarantine action)
-- [x] **Interactive Demo Scenarios Bar** (`DemoScenariosBar.jsx` with 4 1-click incident presets: Water Main Rupture, Pothole Duplicate Storm, Geotag Spoof Attack, Multi-Dept Biomedical Dump)
-- [x] **New Incident Filing Simulation** (`NewComplaintModal.jsx`)
-- [x] **Analytics & SLA Audit Log View** (`AnalyticsView.jsx`)
-- [x] **Mobile-first & Dual Responsive Layout** (`App.jsx`)
+### 🌐 Global Features
+- [x] **Universal Dual-View Switcher**: Single toggle top-right on every screen ("Civilian View" / "Officer View") for instant switching without reloads or login gates.
+- [x] **Zero Technical Jargon Enforced**: 100% elimination of forbidden terms (`Spatial Deduplication`, `GeoJSON`, `EXIF`, `DPI Engine`, `Cryptographic`, `Vector Boundary`, `JSON payload`, `Ward Geo-Mesh`). All underlying intelligence mechanics operate through human language.
+- [x] **Design Language**: Warm dark slate (`#030712` / `slate-950`), bright emerald green (`#10b981`) for fixed states, vibrant cyan (`#06b6d4`) for in-progress and locations, amber for community attention, and generous whitespace with soft glowing cards.
+- [x] **Micro-Interaction Delight**: Built-in synthetic Web Audio chime for neighborhood upvotes and report submissions.
+- [x] **On-Screen Mobile Testing QR Code**: Real-time floating QR button allowing judges to scan and test on their personal mobile devices.
+
+### 📱 View 1: Civilian Portal (Instagram-Simple)
+- [x] **Home / Nearby Feed (`CivilianFeed.jsx`)**:
+  - Live animated counter: "🎉 [N] issues fixed in your area this month" with animated count-up.
+  - Vertical issue feed with crisp photo cards, category pills, distance ("120m away"), color status badge, upvote button with live count, and responsible team in plain language ("Roads Team").
+  - Filter chips: All, Potholes 🕳️, Water Leaks 💧, Garbage 🗑️, Streetlights 💡, Drainage 🌊.
+- [x] **Detail View with Before/After Slider (`IssueDetailModal.jsx` & `BeforeAfterSlider.jsx`)**:
+  - Smooth interactive drag slider allowing users to compare before vs after repair photos on fixed issues.
+  - Plain-language progress tracker: Reported → Assigned → In Progress → Fixed & Verified.
+  - Plain-language fix estimates ("Expected fix: within 18 hours").
+- [x] **Neighborhood Activity Heatmap (`CivilianHeatmap.jsx`)**:
+  - Leaflet map with cyan-to-amber-to-red glowing community activity zones.
+  - Friendly popup summaries showing common issue types, active fixes, and wait times without technical controls.
+- [x] **Giant "+" 5-Step Camera Report Flow (`ReportFlowModal.jsx`)**:
+  - Step 1: Camera capture using `<input type="file" accept="image/*" capture="environment">` to trigger genuine native phone camera.
+  - Step 2: One-tap category selection with big friendly icons.
+  - Step 3: Location auto-detected via browser Geolocation (`navigator.geolocation`) with GPS pin.
+  - Step 4: Smart Nearby Check (warm interstitial notice: "Your neighbors already reported this 2 hours ago! Tap to add your voice." with big green Support (+1) button).
+  - Step 5: Status tracker bar.
+- [x] **My Reports Tracker (`MyReportsView.jsx`)**:
+  - Personal citizen tracking dashboard with live team dispatch status.
+
+### 🏢 View 2: Officer / Organization Portal (Full Logistics Cockpit)
+- [x] **Community-Ranked Priority Queue (`OfficerPriorityQueue.jsx`)**:
+  - Sorted by neighborhood upvotes with live fix deadline countdowns.
+  - "Routed to Roads Division II in 0.2s" animated telemetry tag.
+- [x] **Live Map & Auto-Routing (`OfficerLiveMap.jsx`)**:
+  - Operational color-coded map pins (red = urgent, amber = pending, green = fixed).
+- [x] **Field Repair Verification Modal (`OfficerFixVerifyModal.jsx`)**:
+  - Side-by-side comparison: Citizen original photo vs Crew repair photo upload.
+  - Plain-language automated checklist: "✓ Photo taken at correct physical location" / "✓ Capture timestamp matches dispatch window" / "✓ Repair quality standard compliant".
+  - "Approve Fix & Close Ticket" action which immediately activates the Before/After slider on the civilian side.
+- [x] **Workload & Dynamic Capacity (`OfficerWorkloadView.jsx`)**:
+  - Visual capacity meters for all 4 field divisions (Roads Team, Water Team, Cleanliness Crew, Electrical Team).
 
 ---
 
@@ -35,16 +61,9 @@ cd civictrace-ai
 # Install dependencies
 npm install
 
-# Start local dev server
+# Start development server
 npm run dev
 
 # Build for production
 npm run build
 ```
-
----
-
-## 📌 Architectural & Design Decisions
-1. **Zero-Lag Geospatial Rendering**: Leaflet map components use dynamic HTML DivIcons with custom glow shaders and pulse animations rather than heavy static assets.
-2. **Context-Driven Reactivity**: Single source of truth in `CivicContext.jsx` ensures that running a demo scenario or merging duplicates immediately updates the map markers, table filters, metric counters, and append-only audit stream simultaneously.
-3. **Forensic EXIF Pipeline**: Built-in Haversine coordinate comparison checks reported citizen location against raw EXIF geotags to catch cross-city and viral photo spoofs before deploying physical municipal crews.
