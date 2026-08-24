@@ -1,7 +1,7 @@
 # CivicTrace AI - Development Progress
 
 ## 🚀 Project Status
-Routing & Crew Dispatch Match Card Engine Completed & Synced.
+Real-time Triage Table, Card Queue, and Filter Toolbar Completed & Synced.
 
 ---
 
@@ -16,13 +16,15 @@ Routing & Crew Dispatch Match Card Engine Completed & Synced.
 - [x] **AI Deduplication Modal** (`DeduplicationModal.jsx` with cosine similarity visualizer & 1-click batch merge)
 - [x] **SLA Dynamic Risk Calculator Card** (`SlaCalculatorCard.jsx` with real-time urgency multipliers, countdown gauges, and executive escalation)
 - [x] **Routing & Crew Dispatch Match Card** (`RoutingMatchCard.jsx` with department confidence meters, crew assigner, and AI rationale)
+- [x] **Real-time Triage Table / Queue** (`TriageTable.jsx`, `ComplaintCard.jsx`, `FilterToolbar.jsx` with responsive layouts and search)
 
 ### 🔄 In Progress
-- [ ] **Real-time Triage Table / Queue** (`TriageTable.jsx`, `ComplaintCard.jsx`, `FilterToolbar.jsx`)
+- [ ] **EXIF & Image Tamper Verifier** (`ExifVerifier.jsx` with GPS discrepancy & metadata check)
 
 ### ⏳ Not Yet Started (Planned)
-- [ ] **EXIF & Image Tamper Verifier** (`ExifVerifier.jsx` with GPS discrepancy & metadata check)
 - [ ] **Interactive Demo Scenarios Bar** (`DemoScenariosBar.jsx` with 4 1-click incident presets)
+- [ ] **New Citizen Incident Reporter Modal** (`NewComplaintModal.jsx`)
+- [ ] **Analytics & Audit Log Panel** (`AnalyticsView.jsx`)
 
 ---
 
