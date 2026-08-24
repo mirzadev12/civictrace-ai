@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   Truck,
   Plus,
-  Flame
+  Flame,
+  Compass
 } from 'lucide-react';
 
 function AnimatedCounter({ targetNumber }) {
@@ -40,14 +41,17 @@ function AnimatedCounter({ targetNumber }) {
 
 export default function CivilianFeed() {
   const { 
-    issues, 
+    filteredIssues, 
     upvoteIssue, 
     setSelectedIssueId, 
     setIsDetailOpen, 
     setIsReportOpen,
     fixedCountThisMonth,
     activeFilterCategory,
-    setActiveFilterCategory 
+    setActiveFilterCategory,
+    selectedLocality,
+    setSelectedLocality,
+    localities 
   } = useCivic();
 
   const categories = [
@@ -58,11 +62,6 @@ export default function CivilianFeed() {
     { label: 'Streetlights', value: 'Streetlight', icon: '💡' },
     { label: 'Drainage', value: 'Drainage', icon: '🌊' },
   ];
-
-  const filteredIssues = issues.filter(issue => {
-    if (activeFilterCategory === 'ALL') return true;
-    return issue.category === activeFilterCategory;
-  });
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -97,6 +96,26 @@ export default function CivilianFeed() {
         </div>
       </div>
 
+      {/* Locality Selector Dropdown */}
+      <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold shrink-0">
+          <Compass className="w-4 h-4 text-cyan-400" />
+          <span>Locality:</span>
+        </div>
+        <select
+          value={selectedLocality}
+          onChange={(e) => setSelectedLocality(e.target.value)}
+          className="bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400 rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer flex-1 truncate"
+        >
+          <option value="ALL">All Neighborhoods ({filteredIssues.length} nearby)</option>
+          {localities.filter(l => l !== 'ALL').map(loc => (
+            <option key={loc} value={loc} className="bg-slate-900 text-white">
+              {loc}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Category Horizontal Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {categories.map((cat) => {
@@ -123,8 +142,14 @@ export default function CivilianFeed() {
         {filteredIssues.length === 0 ? (
           <div className="p-12 text-center bg-slate-900/60 rounded-3xl border border-slate-800 text-slate-400">
             <Sparkles className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-80" />
-            <p className="text-sm font-semibold text-white">No active issues in this category</p>
-            <p className="text-xs text-slate-400 mt-1">Your neighborhood is looking great!</p>
+            <p className="text-sm font-semibold text-white">No active issues in {selectedLocality === 'ALL' ? 'this category' : selectedLocality}</p>
+            <p className="text-xs text-slate-400 mt-1 mb-4">Spot something that needs repair? Tap the "+" button to report it!</p>
+            <button
+              onClick={() => setIsReportOpen(true)}
+              className="px-5 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 cursor-pointer"
+            >
+              Report an Issue
+            </button>
           </div>
         ) : (
           filteredIssues.map((issue) => {
@@ -192,6 +217,8 @@ export default function CivilianFeed() {
                       {issue.title}
                     </h3>
                     <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-4">
+                      <span className="text-emerald-400 font-semibold">{issue.area}</span>
+                      <span>•</span>
                       <span>{issue.address}</span>
                       <span>•</span>
                       <span>{issue.reportedTimeAgo}</span>

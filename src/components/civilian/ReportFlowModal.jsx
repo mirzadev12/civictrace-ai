@@ -12,7 +12,9 @@ import {
   Clock,
   Layers,
   ChevronLeft,
-  RotateCcw
+  RotateCcw,
+  Compass,
+  Navigation
 } from 'lucide-react';
 
 export default function ReportFlowModal() {
@@ -21,13 +23,15 @@ export default function ReportFlowModal() {
     setIsReportOpen, 
     createReport, 
     supportExistingIssue, 
-    issues 
+    issues,
+    localities 
   } = useCivic();
 
-  const [step, setStep] = useState(1); // 1: Camera, 2: Category, 3: Location, 4: Nearby Check, 5: Submitted Tracker
+  const [step, setStep] = useState(1); // 1: Camera, 2: Category, 3: Location, 4: Nearby Check
   const [photoPreview, setPhotoPreview] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [detectedAddress, setDetectedAddress] = useState('Main Street, Ward 12');
+  const [selectedArea, setSelectedArea] = useState('Connaught Ward');
+  const [customStreet, setCustomStreet] = useState('');
   const [detectedCoords, setDetectedCoords] = useState([28.6145, 77.2085]);
   const [isLocating, setIsLocating] = useState(false);
   const [nearbyMatch, setNearbyMatch] = useState(null);
@@ -42,55 +46,74 @@ export default function ReportFlowModal() {
     { label: 'Traffic Signal', icon: '🚦', desc: 'Broken lights & missing signage', team: 'Roads Team (Division II)' },
   ];
 
-  // Auto-detect geolocation on step 3
-  useEffect(() => {
-    if (step === 3 && typeof navigator !== 'undefined' && navigator.geolocation) {
+  const localityOptions = [
+    "Connaught Ward",
+    "Green Park Ward",
+    "Industrial Corridor Ward",
+    "Old Heritage Ward",
+    "South Extension",
+    "Sector 12"
+  ];
+
+  // Auto-detect geolocation
+  const handleAutoDetectLocation = () => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setDetectedCoords([pos.coords.latitude, pos.coords.longitude]);
-          setDetectedAddress('Current GPS Location, Ward 12');
+          setCustomStreet(`GPS Pin Near ${selectedArea}`);
           setIsLocating(false);
         },
         (err) => {
-          console.warn("Location permission fallback to Ward 12", err);
+          console.warn("Location permission fallback", err);
           setIsLocating(false);
         },
         { timeout: 8000, enableHighAccuracy: true }
       );
     }
-  }, [step]);
+  };
 
   // Check for nearby duplicates when entering step 4
   useEffect(() => {
     if (step === 4 && selectedCategory) {
       const match = issues.find(i => 
-        i.status !== 'Fixed' && (i.category === selectedCategory.label || i.category.includes(selectedCategory.label))
+        i.status !== 'Fixed' && 
+        (i.category === selectedCategory.label || i.category.includes(selectedCategory.label)) &&
+        (i.area === selectedArea || i.address.toLowerCase().includes(selectedArea.toLowerCase()))
       );
       setNearbyMatch(match || null);
     }
-  }, [step, selectedCategory, issues]);
+  }, [step, selectedCategory, selectedArea, issues]);
 
   if (!isReportOpen) return null;
 
-  // Handle native camera capture
+  // Handle native camera capture with Base64 encoding for 100% reliable feed persistence
   const handlePhotoCapture = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setPhotoPreview(url);
-      setStep(2); // Advance to Category step
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+        setStep(2); // Advance to Category step
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   // Submit new report
   const handleFinalSubmit = () => {
+    const finalAddress = customStreet.trim() 
+      ? `${customStreet}, ${selectedArea}` 
+      : `Main Avenue, ${selectedArea}`;
+
     createReport({
-      title: `${selectedCategory?.label || 'Issue'} on ${detectedAddress}`,
+      title: `${selectedCategory?.label || 'Incident'} on ${finalAddress}`,
       category: selectedCategory?.label || 'Pothole',
       categoryIcon: selectedCategory?.icon || '🕳️',
       photo: photoPreview || "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80",
-      address: detectedAddress,
+      address: finalAddress,
+      area: selectedArea,
       location: detectedCoords,
       assignedTeam: selectedCategory?.team || 'Roads Team (Division II)'
     });
@@ -102,6 +125,7 @@ export default function ReportFlowModal() {
     setPhotoPreview(null);
     setSelectedCategory(null);
     setNearbyMatch(null);
+    setCustomStreet('');
   };
 
   return (
@@ -111,7 +135,7 @@ export default function ReportFlowModal() {
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2">
-            {step > 1 && step < 5 && (
+            {step > 1 && (
               <button
                 onClick={() => setStep(prev => prev - 1)}
                 className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mr-1 cursor-pointer"
@@ -126,7 +150,7 @@ export default function ReportFlowModal() {
               <h3 className="text-sm font-extrabold text-white">
                 {step === 1 && "Take or Upload Photo"}
                 {step === 2 && "Select Problem Type"}
-                {step === 3 && "Confirm Location"}
+                {step === 3 && "Choose Locality & Address"}
                 {step === 4 && (nearbyMatch ? "Existing Neighbor Report Found" : "Review & Submit")}
               </h3>
             </div>
@@ -162,7 +186,7 @@ export default function ReportFlowModal() {
                 {photoPreview ? (
                   <img
                     src={photoPreview}
-                    alt="Captured"
+                    alt="Captured preview"
                     className="w-full h-full object-cover rounded-2xl"
                   />
                 ) : (
@@ -171,16 +195,16 @@ export default function ReportFlowModal() {
                       <Camera className="w-8 h-8" />
                     </div>
                     <h4 className="text-base font-bold text-white mb-1">
-                      Open Camera or Upload Photo
+                      Take or Upload Photo
                     </h4>
                     <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                      Tap anywhere to snap a photo of the pothole, leak, or problem. Photos help teams arrive with the right equipment.
+                      Tap anywhere to snap a live photo of the issue. Photos will appear directly in your neighborhood feed.
                     </p>
                   </>
                 )}
               </div>
 
-              {/* Sample Quick Preset if testing without camera */}
+              {/* Sample Quick Preset for testing without camera */}
               <div className="pt-2">
                 <span className="text-[11px] text-slate-500 block mb-2">Or test with a sample photo:</span>
                 <button
@@ -191,7 +215,7 @@ export default function ReportFlowModal() {
                   }}
                   className="px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
                 >
-                  Use Sample Pothole Photo
+                  Use Sample Photo
                 </button>
               </div>
             </div>
@@ -227,39 +251,72 @@ export default function ReportFlowModal() {
             </div>
           )}
 
-          {/* STEP 3: LOCATION AUTO-DETECTION */}
+          {/* STEP 3: CHOOSE LOCALITY & LOCATION */}
           {step === 3 && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
-                  <MapPin className="w-6 h-6 animate-bounce" />
-                </div>
-                
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    {isLocating ? "Finding your street location..." : "Location Auto-Detected"}
-                  </span>
-                  <h4 className="text-base font-extrabold text-white">
-                    {detectedAddress}
-                  </h4>
-                </div>
-
-                <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>GPS pin confirmed • Ready to route to field crew</span>
+            <div className="space-y-5">
+              
+              {/* Select Locality Chips */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                  1. Choose Your Locality / Ward *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {localityOptions.map((loc) => {
+                    const isSelected = selectedArea === loc;
+                    return (
+                      <button
+                        type="button"
+                        key={loc}
+                        onClick={() => setSelectedArea(loc)}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-md shadow-emerald-500/10'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850'
+                        }`}
+                      >
+                        <span className="truncate">{loc}</span>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* Street Landmark Input */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                  2. Street Name / Landmark (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Near Metro Gate 4, Main Road, Block C"
+                  value={customStreet}
+                  onChange={(e) => setCustomStreet(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 rounded-xl px-3.5 py-3 focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+              </div>
+
+              {/* GPS Auto-detect Button */}
               <button
-                onClick={() => setStep(4)}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs rounded-2xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                type="button"
+                onClick={handleAutoDetectLocation}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-950 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                Continue to Final Step
+                <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                <span>{isLocating ? "Detecting GPS coordinates..." : "Auto-Detect My Current GPS Location"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs rounded-2xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              >
+                Confirm Locality &amp; Continue
               </button>
             </div>
           )}
 
-          {/* STEP 4: SMART NEARBY CHECK (Deduplication without jargon) */}
+          {/* STEP 4: SMART NEARBY CHECK */}
           {step === 4 && (
             <div className="space-y-4">
               {nearbyMatch ? (
@@ -271,7 +328,7 @@ export default function ReportFlowModal() {
                     </div>
                     <div>
                       <h4 className="text-sm font-extrabold text-white">
-                        Your neighbors already reported this!
+                        Your neighbors already reported this in {selectedArea}!
                       </h4>
                       <p className="text-xs text-slate-300 mt-0.5">
                         Reported {nearbyMatch.reportedTimeAgo} • {nearbyMatch.upvotes} neighbors have already added their voice.
@@ -308,7 +365,7 @@ export default function ReportFlowModal() {
                       onClick={handleFinalSubmit}
                       className="text-xs text-slate-400 hover:text-white underline transition-colors cursor-pointer"
                     >
-                      This is a different problem, submit as new
+                      This is a different problem, publish to feed as new
                     </button>
                   </div>
                 </div>
@@ -328,7 +385,9 @@ export default function ReportFlowModal() {
                         <span className="text-xs font-bold text-white block">
                           {selectedCategory?.icon} {selectedCategory?.label}
                         </span>
-                        <span className="text-[11px] text-slate-400 block">{detectedAddress}</span>
+                        <span className="text-[11px] text-emerald-400 font-semibold block">
+                          📍 {selectedArea} {customStreet ? `(${customStreet})` : ''}
+                        </span>
                         <span className="text-[11px] text-cyan-400 font-medium block">
                           {selectedCategory?.team}
                         </span>
@@ -340,7 +399,7 @@ export default function ReportFlowModal() {
                     onClick={handleFinalSubmit}
                     className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs rounded-2xl shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    Submit Report to Community Team
+                    Publish Report &amp; Show in Feed 🎉
                   </button>
                 </div>
               )}
