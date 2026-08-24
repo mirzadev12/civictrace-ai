@@ -6,13 +6,13 @@ export default function AppNavbar() {
   const { currentView, setCurrentView } = useCivic();
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-3">
           
           {/* Brand Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-sm border border-emerald-500/30">
               <Building2 className="w-4.5 h-4.5 text-slate-950 stroke-[2.5]" />
             </div>
             <div>
